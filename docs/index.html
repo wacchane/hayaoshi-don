@@ -99,7 +99,7 @@ body{
 .game{
   width:100%;max-width:340px;
   display:flex;flex-direction:column;align-items:center;
-  gap:34px;
+  gap:18px;
 }
 .roomtag{
   font-family:"Chivo Mono",ui-monospace,monospace;
@@ -114,17 +114,19 @@ body{
 /* ---- パトランプ ---- */
 .lamp{
   position:relative;
-  width:230px;height:186px;
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  width:228px;height:198px;
+  display:block;
   background:none;border:none;padding:0;
   cursor:default;
+  -webkit-tap-highlight-color:transparent;
 }
 .lamp.host{cursor:pointer}
-.lamp.host:focus-visible{outline:2px solid var(--hair);outline-offset:6px;border-radius:12px}
+.lamp.host:focus-visible{outline:2px solid var(--hair);outline-offset:8px;border-radius:14px}
+.lamp svg{display:block;width:100%;height:100%;position:relative;z-index:1}
 
 .beamclip{
   /* レンズの中心に置いた光源のアンカー。切り取らず、マスクだけで減衰させる。 */
-  position:absolute;left:50%;top:109px;
+  position:absolute;left:50%;top:87px;
   width:0;height:0;pointer-events:none;z-index:0;
 }
 .beams{
@@ -133,90 +135,55 @@ body{
   opacity:0;
   transition:opacity 200ms ease;
   background:conic-gradient(from -22deg,
-    rgba(214,43,33,.44) 0deg,
+    rgba(214,43,33,.42) 0deg,
     rgba(214,43,33,0) 44deg,
     rgba(214,43,33,0) 136deg,
-    rgba(214,43,33,.44) 180deg,
+    rgba(214,43,33,.42) 180deg,
     rgba(214,43,33,0) 224deg,
     rgba(214,43,33,0) 316deg,
-    rgba(214,43,33,.44) 360deg);
+    rgba(214,43,33,.42) 360deg);
   -webkit-mask-image:radial-gradient(closest-side,#000 10%,rgba(0,0,0,.5) 42%,transparent 76%);
   mask-image:radial-gradient(closest-side,#000 10%,rgba(0,0,0,.5) 42%,transparent 76%);
 }
 .lamp.on .beams{opacity:1;animation:spin 1.15s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.lens{
-  position:relative;z-index:1;
-  width:134px;height:82px;
-  border-radius:67px 67px 9px 9px;
-  background:linear-gradient(168deg,var(--lens-off-a),var(--lens-off-b));
-  box-shadow:inset 0 -5px 10px rgba(0,0,0,.22);
-  transition:background 160ms ease,box-shadow 220ms ease;
-}
-.lens::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;
-  background:repeating-linear-gradient(90deg,rgba(255,255,255,.16) 0 2px,rgba(0,0,0,.07) 2px 9px);
-  opacity:.6;
-}
-.lens::after{
-  content:"";position:absolute;left:17px;top:12px;
-  width:38px;height:26px;border-radius:50%;
-  background:rgba(255,255,255,.5);filter:blur(4px);
-}
-.lamp.on .lens{
-  background:linear-gradient(168deg,var(--lens-on-a),var(--lens-on-b));
-  box-shadow:inset 0 -5px 10px rgba(0,0,0,.14),
-             0 0 26px 6px rgba(214,43,33,.5),
-             0 0 70px 22px rgba(214,43,33,.26);
-  animation:throb 1.15s ease-in-out infinite;
-}
-@keyframes throb{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
-.collar{position:relative;z-index:1;width:146px;height:11px;border-radius:3px;background:linear-gradient(var(--metal-a),var(--metal-b));margin-top:-1px}
-.base{
-  position:relative;z-index:1;
-  width:162px;height:25px;border-radius:5px;
-  background:linear-gradient(var(--metal-a),var(--metal-b));
-  box-shadow:0 10px 20px -12px rgba(0,0,0,.5);
-}
+/* 消灯時はくすんだ赤いレンズだけ。点灯でガラスが色づき、内部の電球が立ち上がる。 */
+.lens-on,.glowfx{opacity:0;transition:opacity 200ms ease}
+.lamp.on .lens-on{opacity:1}
+.lamp.on .glowfx{opacity:1;animation:flare 1.15s ease-in-out infinite}
+@keyframes flare{0%,100%{opacity:.84}50%{opacity:1}}
 
 /* ---- 早押しボタン ---- */
 .buzzer{
   position:relative;z-index:1;
-  width:176px;height:176px;border-radius:50%;
-  border:none;padding:0;
-  background:radial-gradient(circle at 50% 30%,var(--red-hi),var(--red) 56%,var(--red-lo) 100%);
-  box-shadow:0 13px 0 -2px var(--red-lo),
-             0 24px 34px -16px rgba(0,0,0,.42),
-             inset 0 3px 8px rgba(255,255,255,.34);
+  width:252px;height:170px;
+  display:block;
+  background:none;border:none;padding:0;
   cursor:pointer;
-  transition:transform 90ms ease,box-shadow 90ms ease,opacity 200ms ease,filter 200ms ease;
+  transition:opacity 200ms ease,filter 200ms ease;
   -webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
 }
-.buzzer:active,.buzzer.hit{
-  transform:translateY(10px);
-  box-shadow:0 3px 0 -2px var(--red-lo),
-             0 8px 14px -10px rgba(0,0,0,.42),
-             inset 0 3px 8px rgba(255,255,255,.26);
-}
-.buzzer:focus-visible{outline:3px solid var(--ink);outline-offset:9px}
-.buzzer:disabled{
-  cursor:default;opacity:.42;filter:saturate(.6);transform:none;
-  box-shadow:0 13px 0 -2px var(--red-lo),0 24px 34px -16px rgba(0,0,0,.42);
-}
+.buzzer svg{display:block;width:100%;height:100%}
+.buzzer:focus-visible{outline:3px solid var(--ink);outline-offset:4px;border-radius:14px}
+.dome-g{transition:transform 90ms ease}
+.dome-shadow{transition:opacity 90ms ease}
+.buzzer:active .dome-g,.buzzer.hit .dome-g{transform:translateY(15px)}
+.buzzer:active .dome-shadow,.buzzer.hit .dome-shadow{opacity:.3}
+.buzzer:disabled{cursor:default;opacity:.6;filter:saturate(.16)}
 
 .hint{min-height:16px;margin:0;font-size:11px;letter-spacing:.04em;color:var(--ink-2);text-align:center}
 
 @media (prefers-reduced-motion: reduce){
   .lamp.on .beams{animation:none}
-  .lamp.on .lens{animation:none}
+  .lamp.on .glowfx{animation:none}
   .buzzer{transition:opacity 200ms ease}
 }
 @media (max-height:660px){
-  .game{gap:22px}
-  .lamp{transform:scale(.86)}
-  .buzzer{width:150px;height:150px}
+  .game{gap:16px}
+  .lamp{transform:scale(.84)}
+  .buzzer{transform:scale(.88)}
 }
 </style>
 </head>
@@ -246,12 +213,128 @@ body{
 
   <button class="lamp" id="lamp" aria-label="パトランプ">
     <span class="beamclip"><span class="beams"></span></span>
-    <span class="lens"></span>
-    <span class="collar"></span>
-    <span class="base"></span>
+    <svg viewBox="0 18 300 260" aria-hidden="true">
+      <defs>
+        <linearGradient id="lgOff" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#C4837D"/>
+          <stop offset=".55" stop-color="#9A5851"/>
+          <stop offset="1" stop-color="#733B37"/>
+        </linearGradient>
+        <linearGradient id="lgOn" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FF7264"/>
+          <stop offset=".45" stop-color="#F32A1A"/>
+          <stop offset="1" stop-color="#B41208"/>
+        </linearGradient>
+        <linearGradient id="cyl" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#000" stop-opacity=".40"/>
+          <stop offset=".24" stop-color="#000" stop-opacity="0"/>
+          <stop offset=".72" stop-color="#000" stop-opacity="0"/>
+          <stop offset="1" stop-color="#000" stop-opacity=".44"/>
+        </linearGradient>
+        <radialGradient id="bulbG" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#FFFFFF"/>
+          <stop offset=".18" stop-color="#FFF6D2"/>
+          <stop offset=".46" stop-color="#FFC552" stop-opacity=".8"/>
+          <stop offset="1" stop-color="#FF8A2A" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="collarG" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#26262B"/>
+          <stop offset=".3" stop-color="#5C5C66"/>
+          <stop offset=".7" stop-color="#37373D"/>
+          <stop offset="1" stop-color="#1B1B1F"/>
+        </linearGradient>
+        <linearGradient id="baseG" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#08080A"/>
+          <stop offset=".3" stop-color="#2C2C33"/>
+          <stop offset=".66" stop-color="#141418"/>
+          <stop offset="1" stop-color="#060608"/>
+        </linearGradient>
+        <symbol id="spark" viewBox="-50 -50 100 100">
+          <path d="M0,-50 Q6,-6 50,0 Q6,6 0,50 Q-6,6 -50,0 Q-6,-6 0,-50 Z" fill="#fff"/>
+        </symbol>
+        <clipPath id="lensClip"><path d="M52,214 L52,146 C52,74 94,32 150,32 C206,32 248,74 248,146 L248,214 Z"/></clipPath>
+      </defs>
+
+      <path d="M52,214 L52,146 C52,74 94,32 150,32 C206,32 248,74 248,146 L248,214 Z" fill="url(#lgOff)"/>
+      <path class="lens-on" d="M52,214 L52,146 C52,74 94,32 150,32 C206,32 248,74 248,146 L248,214 Z" fill="url(#lgOn)"/>
+
+      <g clip-path="url(#lensClip)">
+        <g stroke="#000" stroke-opacity=".13" stroke-width="5"><path d="M58,28 L58,220"/><path d="M75,40 L75,220"/><path d="M92,40 L92,220"/><path d="M109,40 L109,220"/><path d="M126,40 L126,220"/><path d="M143,40 L143,220"/><path d="M160,40 L160,220"/><path d="M177,40 L177,220"/><path d="M194,40 L194,220"/><path d="M211,40 L211,220"/><path d="M228,40 L228,220"/><path d="M245,40 L245,220"/></g>
+        <g class="glowfx">
+          <ellipse cx="150" cy="130" rx="92" ry="92" fill="url(#bulbG)"/>
+          <use href="#spark" x="66" y="42" width="106" height="106" opacity=".95"/>
+          <use href="#spark" x="166" y="74" width="66" height="66" opacity=".8"/>
+          <use href="#spark" x="178" y="152" width="50" height="50" opacity=".7"/>
+        </g>
+        <path d="M52,214 L52,146 C52,74 94,32 150,32 C206,32 248,74 248,146 L248,214 Z" fill="url(#cyl)"/>
+        <path d="M84,202 C70,150 80,90 112,58 C122,49 132,52 125,65 C100,106 96,158 105,204 Z"
+              fill="#fff" opacity=".3"/>
+        <ellipse cx="200" cy="80" rx="15" ry="29" fill="#fff" opacity=".18"
+                 transform="rotate(24 200 80)"/>
+      </g>
+
+      <path d="M52,214 L52,146 C52,74 94,32 150,32 C206,32 248,74 248,146 L248,214"
+            fill="none" stroke="#000" stroke-opacity=".2" stroke-width="3"/>
+
+      <ellipse cx="150" cy="214" rx="112" ry="16" fill="url(#collarG)"/>
+      <rect x="38" y="214" width="224" height="40" fill="url(#baseG)"/>
+      <ellipse cx="150" cy="254" rx="112" ry="16" fill="#0A0A0D"/>
+      <ellipse cx="150" cy="252" rx="112" ry="16" fill="none"
+               stroke="#41414A" stroke-opacity=".55" stroke-width="2"/>
+    </svg>
   </button>
 
-  <button class="buzzer" id="buzzer" aria-label="早押しボタン"></button>
+  <button class="buzzer" id="buzzer" aria-label="早押しボタン">
+    <svg viewBox="0 50 400 270" aria-hidden="true">
+      <defs>
+        <linearGradient id="boxTop" x1="0" y1="0" x2=".7" y2="1">
+          <stop offset="0" stop-color="#FEFEFF"/>
+          <stop offset="1" stop-color="#C6CAD2"/>
+        </linearGradient>
+        <linearGradient id="boxLeft" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#DFE3E9"/>
+          <stop offset="1" stop-color="#A6ACB6"/>
+        </linearGradient>
+        <linearGradient id="boxRight" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#979DA7"/>
+          <stop offset="1" stop-color="#6B717B"/>
+        </linearGradient>
+        <radialGradient id="domeG" cx=".36" cy=".24" r=".84">
+          <stop offset="0" stop-color="#FF8272"/>
+          <stop offset=".3" stop-color="#F42D1D"/>
+          <stop offset=".76" stop-color="#C0130A"/>
+          <stop offset="1" stop-color="#7C0B05"/>
+        </radialGradient>
+        <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="7"/>
+        </filter>
+        <filter id="soft2" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="4"/>
+        </filter>
+      </defs>
+
+      <path d="M18,148 L232,204 L232,310 L18,254 Z" fill="url(#boxLeft)"/>
+      <path d="M232,204 L382,142 L382,248 L232,310 Z" fill="url(#boxRight)"/>
+      <path d="M18,148 L168,86 L382,142 L232,204 Z" fill="url(#boxTop)"/>
+      <path d="M18,148 L168,86 L382,142 L232,204 Z M232,204 L232,310 M18,148 L18,254
+               M382,142 L382,248 M18,254 L232,310 L382,248"
+            fill="none" stroke="#878D97" stroke-opacity=".5" stroke-width="1.5"
+            stroke-linejoin="round"/>
+
+      <ellipse class="dome-shadow" cx="200" cy="155" rx="109" ry="38"
+               fill="#393E46" opacity=".5" filter="url(#soft)"/>
+
+      <g class="dome-g">
+        <ellipse cx="200" cy="147" rx="100" ry="31" fill="#2B0704"/>
+        <path d="M101,142 A99,85 0 0,1 299,142 A99,30 0 0,1 101,142 Z" fill="url(#domeG)"/>
+        <ellipse cx="161" cy="87" rx="31" ry="17" fill="#fff" opacity=".5"
+                 filter="url(#soft2)" transform="rotate(-24 161 87)"/>
+        <circle cx="181" cy="75" r="7" fill="#fff" opacity=".9"/>
+        <path d="M116,152 A90,73 0 0,1 146,90" fill="none" stroke="#fff"
+              stroke-opacity=".2" stroke-width="7" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </button>
 
   <p class="hint" id="hint"></p>
 </div>
