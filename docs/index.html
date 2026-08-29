@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>早押しドン</title>
+<meta name="description" content="ルーム番号を知っている人だけで早押し対決。最初に押した人のパトランプだけが光ります。">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="早押しドン">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* 白背景に固定した単一テーマ。色はすべて明示する。 */
+:root{
+  --paper:#FFFFFF;
+  --ink:#16181C;
+  --ink-2:#7A8089;
+  --hair:#E4E6EA;
+  --red:#D62B21;
+  --red-hi:#FF6A5F;
+  --red-lo:#8E1712;
+  --lens-on-a:#FF5347;
+  --lens-on-b:#C81E16;
+  --lens-off-a:#C79B98;
+  --lens-off-b:#8E6B69;
+  --metal-a:#454B54;
+  --metal-b:#22262B;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+  overscroll-behavior:none;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.mono{font-family:"Chivo Mono",ui-monospace,monospace}
+/* display を持つ要素にも hidden を効かせる */
+[hidden]{display:none !important}
+
+/* ============ 入口 ============ */
+.entry{
+  width:100%;max-width:300px;
+  display:flex;flex-direction:column;gap:26px;
+  text-align:center;
+}
+.entry h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.06em}
+.entry h1 em{font-style:normal;color:var(--red)}
+.entry p.sub{margin:-18px 0 0;font-size:12px;color:var(--ink-2);line-height:1.7}
+.entry .group{display:flex;flex-direction:column;gap:9px}
+.big{
+  width:100%;
+  font-family:inherit;font-size:15px;font-weight:700;
+  padding:15px 10px;border-radius:12px;
+  border:1px solid var(--red);
+  background:var(--red);color:#fff;
+  cursor:pointer;
+  transition:opacity 140ms ease;
+}
+.big:hover{opacity:.88}
+.big:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.big:disabled{opacity:.35;cursor:default}
+.ghost{background:var(--paper);color:var(--red)}
+.code-input{
+  width:100%;
+  font-family:"Chivo Mono",ui-monospace,monospace;
+  font-size:27px;font-weight:500;letter-spacing:.26em;text-indent:.26em;
+  text-align:center;
+  padding:14px 8px;
+  border:1px solid var(--hair);border-radius:12px;
+  background:var(--paper);color:var(--ink);
+  outline:none;
+  -webkit-user-select:text;user-select:text;
+}
+.code-input:focus{border-color:var(--red)}
+.code-input::placeholder{color:#CBCFD5;letter-spacing:.26em}
+.divider{display:flex;align-items:center;gap:12px;font-size:10px;letter-spacing:.2em;color:var(--ink-2)}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--hair)}
+.note{margin:0;min-height:32px;font-size:11px;line-height:1.7;color:var(--ink-2)}
+.note.warn{color:var(--red)}
+
+/* ============ ゲーム画面 ============ */
+.game{
+  width:100%;max-width:340px;
+  display:flex;flex-direction:column;align-items:center;
+  gap:34px;
+}
+.roomtag{
+  font-family:"Chivo Mono",ui-monospace,monospace;
+  font-size:12px;letter-spacing:.34em;text-indent:.34em;
+  color:#C2C6CC;
+  background:none;border:none;padding:4px 6px;cursor:pointer;
+  transition:color 140ms ease;
+}
+.roomtag:hover{color:var(--ink-2)}
+.roomtag:focus-visible{outline:2px solid var(--hair);outline-offset:2px}
+
+/* ---- パトランプ ---- */
+.lamp{
+  position:relative;
+  width:230px;height:186px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  background:none;border:none;padding:0;
+  cursor:default;
+}
+.lamp.host{cursor:pointer}
+.lamp.host:focus-visible{outline:2px solid var(--hair);outline-offset:6px;border-radius:12px}
+
+.beamclip{
+  /* レンズの中心に置いた光源のアンカー。切り取らず、マスクだけで減衰させる。 */
+  position:absolute;left:50%;top:109px;
+  width:0;height:0;pointer-events:none;z-index:0;
+}
+.beams{
+  position:absolute;left:-230px;top:-230px;
+  width:460px;height:460px;
+  opacity:0;
+  transition:opacity 200ms ease;
+  background:conic-gradient(from -22deg,
+    rgba(214,43,33,.44) 0deg,
+    rgba(214,43,33,0) 44deg,
+    rgba(214,43,33,0) 136deg,
+    rgba(214,43,33,.44) 180deg,
+    rgba(214,43,33,0) 224deg,
+    rgba(214,43,33,0) 316deg,
+    rgba(214,43,33,.44) 360deg);
+  -webkit-mask-image:radial-gradient(closest-side,#000 10%,rgba(0,0,0,.5) 42%,transparent 76%);
+  mask-image:radial-gradient(closest-side,#000 10%,rgba(0,0,0,.5) 42%,transparent 76%);
+}
+.lamp.on .beams{opacity:1;animation:spin 1.15s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.lens{
+  position:relative;z-index:1;
+  width:134px;height:82px;
+  border-radius:67px 67px 9px 9px;
+  background:linear-gradient(168deg,var(--lens-off-a),var(--lens-off-b));
+  box-shadow:inset 0 -5px 10px rgba(0,0,0,.22);
+  transition:background 160ms ease,box-shadow 220ms ease;
+}
+.lens::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.16) 0 2px,rgba(0,0,0,.07) 2px 9px);
+  opacity:.6;
+}
+.lens::after{
+  content:"";position:absolute;left:17px;top:12px;
+  width:38px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.5);filter:blur(4px);
+}
+.lamp.on .lens{
+  background:linear-gradient(168deg,var(--lens-on-a),var(--lens-on-b));
+  box-shadow:inset 0 -5px 10px rgba(0,0,0,.14),
+             0 0 26px 6px rgba(214,43,33,.5),
+             0 0 70px 22px rgba(214,43,33,.26);
+  animation:throb 1.15s ease-in-out infinite;
+}
+@keyframes throb{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
+.collar{position:relative;z-index:1;width:146px;height:11px;border-radius:3px;background:linear-gradient(var(--metal-a),var(--metal-b));margin-top:-1px}
+.base{
+  position:relative;z-index:1;
+  width:162px;height:25px;border-radius:5px;
+  background:linear-gradient(var(--metal-a),var(--metal-b));
+  box-shadow:0 10px 20px -12px rgba(0,0,0,.5);
+}
+
+/* ---- 早押しボタン ---- */
+.buzzer{
+  position:relative;z-index:1;
+  width:176px;height:176px;border-radius:50%;
+  border:none;padding:0;
+  background:radial-gradient(circle at 50% 30%,var(--red-hi),var(--red) 56%,var(--red-lo) 100%);
+  box-shadow:0 13px 0 -2px var(--red-lo),
+             0 24px 34px -16px rgba(0,0,0,.42),
+             inset 0 3px 8px rgba(255,255,255,.34);
+  cursor:pointer;
+  transition:transform 90ms ease,box-shadow 90ms ease,opacity 200ms ease,filter 200ms ease;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.buzzer:active,.buzzer.hit{
+  transform:translateY(10px);
+  box-shadow:0 3px 0 -2px var(--red-lo),
+             0 8px 14px -10px rgba(0,0,0,.42),
+             inset 0 3px 8px rgba(255,255,255,.26);
+}
+.buzzer:focus-visible{outline:3px solid var(--ink);outline-offset:9px}
+.buzzer:disabled{
+  cursor:default;opacity:.42;filter:saturate(.6);transform:none;
+  box-shadow:0 13px 0 -2px var(--red-lo),0 24px 34px -16px rgba(0,0,0,.42);
+}
+
+.hint{min-height:16px;margin:0;font-size:11px;letter-spacing:.04em;color:var(--ink-2);text-align:center}
+
+@media (prefers-reduced-motion: reduce){
+  .lamp.on .beams{animation:none}
+  .lamp.on .lens{animation:none}
+  .buzzer{transition:opacity 200ms ease}
+}
+@media (max-height:660px){
+  .game{gap:22px}
+  .lamp{transform:scale(.86)}
+  .buzzer{width:150px;height:150px}
+}
+</style>
+</head>
+<body>
+
+<div class="entry" id="entry">
+  <h1>早押し<em>ドン</em></h1>
+  <p class="sub">ルーム番号を知っている人だけで<br>早押し対決ができます。</p>
+
+  <div class="group">
+    <button class="big" id="createBtn">ルームを作る</button>
+  </div>
+
+  <div class="divider">OR</div>
+
+  <div class="group">
+    <input class="code-input" id="codeInput" inputmode="numeric" pattern="[0-9]*"
+           maxlength="6" placeholder="000000" aria-label="ルーム番号" autocomplete="off">
+    <button class="big ghost" id="joinBtn" disabled>参加する</button>
+  </div>
+
+  <p class="note" id="entryNote"></p>
+</div>
+
+<div class="game" id="game" hidden>
+  <button class="roomtag mono" id="roomTag" title="タップで番号をコピー">------</button>
+
+  <button class="lamp" id="lamp" aria-label="パトランプ">
+    <span class="beamclip"><span class="beams"></span></span>
+    <span class="lens"></span>
+    <span class="collar"></span>
+    <span class="base"></span>
+  </button>
+
+  <button class="buzzer" id="buzzer" aria-label="早押しボタン"></button>
+
+  <p class="hint" id="hint"></p>
+</div>
+
+<script src="./mqtt-mini.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

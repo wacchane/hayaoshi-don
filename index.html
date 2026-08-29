@@ -1,0 +1,536 @@
+<title>早押しドン</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+
+<style>
+/* 白背景に固定した単一テーマ。色はすべて明示する。 */
+:root{
+  --paper:#FFFFFF;
+  --ink:#16181C;
+  --ink-2:#7A8089;
+  --hair:#E4E6EA;
+  --red:#D62B21;
+  --red-hi:#FF6A5F;
+  --red-lo:#8E1712;
+  --lens-on-a:#FF5347;
+  --lens-on-b:#C81E16;
+  --lens-off-a:#C79B98;
+  --lens-off-b:#8E6B69;
+  --metal-a:#454B54;
+  --metal-b:#22262B;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px 20px;
+  overscroll-behavior:none;
+}
+.mono{font-family:"Chivo Mono",ui-monospace,monospace}
+/* display を持つ要素にも hidden を効かせる */
+[hidden]{display:none !important}
+
+/* ============ 入口 ============ */
+.entry{
+  width:100%;max-width:300px;
+  display:flex;flex-direction:column;gap:26px;
+  text-align:center;
+}
+.entry h1{
+  margin:0;font-size:20px;font-weight:700;letter-spacing:.06em;
+}
+.entry h1 em{font-style:normal;color:var(--red)}
+.entry p.sub{
+  margin:-18px 0 0;font-size:12px;color:var(--ink-2);line-height:1.7;
+}
+.entry .group{display:flex;flex-direction:column;gap:9px}
+.big{
+  width:100%;
+  font-family:inherit;font-size:15px;font-weight:700;
+  padding:15px 10px;border-radius:12px;
+  border:1px solid var(--red);
+  background:var(--red);color:#fff;
+  cursor:pointer;
+  transition:opacity 140ms ease;
+}
+.big:hover{opacity:.88}
+.big:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.ghost{
+  background:var(--paper);color:var(--red);
+}
+.ghost:disabled{opacity:.35;cursor:default}
+.code-input{
+  width:100%;
+  font-family:"Chivo Mono",ui-monospace,monospace;
+  font-size:30px;font-weight:500;letter-spacing:.34em;text-indent:.34em;
+  text-align:center;
+  padding:14px 8px;
+  border:1px solid var(--hair);border-radius:12px;
+  background:var(--paper);color:var(--ink);
+  outline:none;
+}
+.code-input:focus{border-color:var(--red)}
+.code-input::placeholder{color:#CBCFD5;letter-spacing:.34em}
+.divider{
+  display:flex;align-items:center;gap:12px;
+  font-size:10px;letter-spacing:.2em;color:var(--ink-2);
+}
+.divider::before,.divider::after{
+  content:"";flex:1;height:1px;background:var(--hair);
+}
+.note{margin:0;font-size:11px;line-height:1.7;color:var(--ink-2)}
+.note.warn{color:var(--red)}
+
+/* ============ ゲーム画面 ============ */
+.game{
+  width:100%;max-width:340px;
+  display:flex;flex-direction:column;align-items:center;
+  gap:34px;
+}
+.roomtag{
+  font-family:"Chivo Mono",ui-monospace,monospace;
+  font-size:12px;letter-spacing:.36em;text-indent:.36em;
+  color:#C2C6CC;
+  background:none;border:none;padding:4px 6px;cursor:pointer;
+  transition:color 140ms ease;
+}
+.roomtag:hover{color:var(--ink-2)}
+.roomtag:focus-visible{outline:2px solid var(--hair);outline-offset:2px}
+
+/* ---- パトランプ ---- */
+.lamp{
+  position:relative;
+  width:230px;height:186px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  background:none;border:none;padding:0;
+  cursor:default;
+}
+.lamp.host{cursor:pointer}
+.lamp.host:focus-visible{outline:2px solid var(--hair);outline-offset:6px;border-radius:12px}
+
+.beamclip{
+  /* レンズの中心に置いた光源のアンカー。切り取らず、マスクだけで減衰させる。 */
+  position:absolute;left:50%;top:109px;
+  width:0;height:0;pointer-events:none;z-index:0;
+}
+.beams{
+  position:absolute;left:-230px;top:-230px;
+  width:460px;height:460px;
+  opacity:0;
+  transition:opacity 200ms ease;
+  background:conic-gradient(from -22deg,
+    rgba(214,43,33,.44) 0deg,
+    rgba(214,43,33,0) 44deg,
+    rgba(214,43,33,0) 136deg,
+    rgba(214,43,33,.44) 180deg,
+    rgba(214,43,33,0) 224deg,
+    rgba(214,43,33,0) 316deg,
+    rgba(214,43,33,.44) 360deg);
+  -webkit-mask-image:radial-gradient(closest-side,#000 10%,rgba(0,0,0,.5) 42%,transparent 76%);
+  mask-image:radial-gradient(closest-side,#000 10%,rgba(0,0,0,.5) 42%,transparent 76%);
+}
+.lamp.on .beams{opacity:1;animation:spin 1.15s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.lens{
+  position:relative;z-index:1;
+  width:134px;height:82px;
+  border-radius:67px 67px 9px 9px;
+  background:linear-gradient(168deg,var(--lens-off-a),var(--lens-off-b));
+  box-shadow:inset 0 -5px 10px rgba(0,0,0,.22);
+  transition:background 160ms ease,box-shadow 220ms ease;
+}
+.lens::before{  /* レンズのリブ */
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.16) 0 2px,rgba(0,0,0,.07) 2px 9px);
+  opacity:.6;
+}
+.lens::after{  /* ハイライト */
+  content:"";position:absolute;left:17px;top:12px;
+  width:38px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.5);filter:blur(4px);
+}
+.lamp.on .lens{
+  background:linear-gradient(168deg,var(--lens-on-a),var(--lens-on-b));
+  box-shadow:inset 0 -5px 10px rgba(0,0,0,.14),
+             0 0 26px 6px rgba(214,43,33,.5),
+             0 0 70px 22px rgba(214,43,33,.26);
+  animation:throb 1.15s ease-in-out infinite;
+}
+@keyframes throb{
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(1.22)}
+}
+.collar{
+  position:relative;z-index:1;
+  width:146px;height:11px;border-radius:3px;
+  background:linear-gradient(var(--metal-a),var(--metal-b));
+  margin-top:-1px;
+}
+.base{
+  position:relative;z-index:1;
+  width:162px;height:25px;border-radius:5px;
+  background:linear-gradient(var(--metal-a),var(--metal-b));
+  box-shadow:0 10px 20px -12px rgba(0,0,0,.5);
+}
+
+/* ---- 早押しボタン ---- */
+.buzzer{
+  position:relative;z-index:1;
+  width:176px;height:176px;border-radius:50%;
+  border:none;padding:0;
+  background:radial-gradient(circle at 50% 30%,var(--red-hi),var(--red) 56%,var(--red-lo) 100%);
+  box-shadow:0 13px 0 -2px var(--red-lo),
+             0 24px 34px -16px rgba(0,0,0,.42),
+             inset 0 3px 8px rgba(255,255,255,.34);
+  cursor:pointer;
+  transition:transform 90ms ease,box-shadow 90ms ease,opacity 200ms ease,filter 200ms ease;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.buzzer:active,.buzzer.hit{
+  transform:translateY(10px);
+  box-shadow:0 3px 0 -2px var(--red-lo),
+             0 8px 14px -10px rgba(0,0,0,.42),
+             inset 0 3px 8px rgba(255,255,255,.26);
+}
+.buzzer:focus-visible{outline:3px solid var(--ink);outline-offset:9px}
+.buzzer:disabled{
+  cursor:default;opacity:.42;filter:saturate(.6);
+  transform:none;
+  box-shadow:0 13px 0 -2px var(--red-lo),0 24px 34px -16px rgba(0,0,0,.42);
+}
+
+.hint{
+  min-height:16px;margin:0;
+  font-size:11px;letter-spacing:.04em;color:var(--ink-2);
+  text-align:center;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .lamp.on .beams{animation:none}
+  .lamp.on .lens{animation:none}
+  .buzzer{transition:opacity 200ms ease}
+}
+@media (max-height:660px){
+  .game{gap:22px}
+  .lamp{transform:scale(.86)}
+  .buzzer{width:150px;height:150px}
+}
+</style>
+
+<!-- ============ 入口 ============ -->
+<div class="entry" id="entry">
+  <h1>早押し<em>ドン</em></h1>
+  <p class="sub">ルーム番号を知っている人だけで<br>早押し対決ができます。</p>
+
+  <div class="group">
+    <button class="big" id="createBtn">ルームを作る</button>
+  </div>
+
+  <div class="divider">OR</div>
+
+  <div class="group">
+    <input class="code-input" id="codeInput" inputmode="numeric" pattern="[0-9]*"
+           maxlength="4" placeholder="0000" aria-label="ルーム番号">
+    <button class="big ghost" id="joinBtn" disabled>参加する</button>
+  </div>
+
+  <p class="note" id="entryNote"></p>
+</div>
+
+<!-- ============ ゲーム ============ -->
+<div class="game" id="game" hidden>
+  <button class="roomtag mono" id="roomTag" title="タップで番号をコピー">----</button>
+
+  <button class="lamp" id="lamp" aria-label="パトランプ">
+    <span class="beamclip"><span class="beams"></span></span>
+    <span class="lens"></span>
+    <span class="collar"></span>
+    <span class="base"></span>
+  </button>
+
+  <button class="buzzer" id="buzzer" aria-label="早押しボタン"></button>
+
+  <p class="hint" id="hint"></p>
+</div>
+
+<script>
+(function(){
+  var entry = document.getElementById('entry');
+  var game = document.getElementById('game');
+  var createBtn = document.getElementById('createBtn');
+  var joinBtn = document.getElementById('joinBtn');
+  var codeInput = document.getElementById('codeInput');
+  var entryNote = document.getElementById('entryNote');
+  var roomTag = document.getElementById('roomTag');
+  var lamp = document.getElementById('lamp');
+  var buzzer = document.getElementById('buzzer');
+  var hint = document.getElementById('hint');
+
+  /* ---------------- 音（クイズの回答音 ピンポーン） ---------------- */
+
+  var ctx = null, master = null;
+
+  function audio(){
+    if (!ctx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { return null; }
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = 0.8;
+      master.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') { ctx.resume(); }
+    return ctx;
+  }
+
+  // 非整数倍音を重ねたベル。倍音ほど速く減衰させて金属的に響かせる。
+  function bell(t0, freq, dur, amp){
+    var partials = [[1, 1], [2.0, 0.40], [3.01, 0.18], [4.18, 0.08]];
+    for (var i = 0; i < partials.length; i++) {
+      var mult = partials[i][0];
+      var a = partials[i][1] * amp;
+      var d = dur / (1 + (mult - 1) * 0.42);
+      var osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * mult, t0);
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(a, t0 + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      osc.connect(g); g.connect(master);
+      osc.start(t0); osc.stop(t0 + d + 0.05);
+    }
+  }
+
+  function pinpon(){
+    if (!audio()) { return; }
+    var t = ctx.currentTime + 0.01;
+    bell(t, 1046.50, 0.40, 0.30);          // ピン (C6)
+    bell(t + 0.155, 1567.98, 0.95, 0.32);  // ポーン (G6)
+    if (navigator.vibrate) { try { navigator.vibrate([18, 40, 60]); } catch (e) {} }
+  }
+
+  /* ---------------- 状態 ---------------- */
+
+  var room = null;        // room capability（null なら1人用）
+  var myPeer = null;
+  var roomId = null;
+  var isHost = false;
+  var round = 0;
+  var roundOpen = false;  // ホストが持つ「受付中」フラグ
+  var locked = false;     // この端末のボタンが押せない
+  var pressed = false;    // 二重送信よけ
+  var lastWinner = null;
+
+  function setLamp(on){
+    lamp.classList.toggle('on', on);
+  }
+
+  function setHint(text){
+    hint.textContent = text || '';
+  }
+
+  function openRound(){
+    locked = false;
+    pressed = false;
+    setLamp(false);
+    buzzer.disabled = false;
+    setHint(isHost ? 'ランプをタップで次の問題へ' : '');
+  }
+
+  function winBy(peer){
+    locked = true;
+    lastWinner = peer;
+    buzzer.disabled = true;
+    var mine = (peer && peer === myPeer);
+    setLamp(mine);
+    if (isHost) {
+      setHint('ランプをタップで次の問題へ');
+    } else {
+      setHint(mine ? '' : '');
+    }
+  }
+
+  /* ---------------- 接続 ---------------- */
+
+  function inRoom(data){
+    return data && typeof data === 'object' && data.room === roomId;
+  }
+
+  function connect(){
+    if (!window.claude || !window.claude.use) { return; }
+    window.claude.use('room').then(function(r){
+      if (!r) { return; }
+      room = r;
+
+      room.onPeers(function(change){
+        for (var i = 0; i < change.peers.length; i++) {
+          var p = change.peers[i];
+          if (p.isMe && p.sameTab) { myPeer = p.peer; }
+        }
+        // 途中参加者に現在の状況を配り直す（イベントは再生されないため）
+        if (isHost && change.joined.length) { broadcastState(); }
+      });
+
+      room.on('buzz', function(msg){
+        if (!isHost || !inRoom(msg.data)) { return; }
+        if (!roundOpen || msg.data.round !== round) { return; }
+        roundOpen = false;
+        room.emit('win', { room: roomId, round: round, peer: msg.peer });
+      });
+
+      room.on('win', function(msg){
+        if (!inRoom(msg.data)) { return; }
+        round = msg.data.round;
+        winBy(msg.data.peer);
+      });
+
+      room.on('open', function(msg){
+        if (!inRoom(msg.data)) { return; }
+        round = msg.data.round;
+        openRound();
+      });
+
+      room.on('hello', function(msg){
+        if (isHost && inRoom(msg.data)) { broadcastState(); }
+      });
+
+      room.onConnection(function(ok){
+        if (!ok && roomId) { setHint('接続中…'); }
+        else if (roomId && !locked) { setHint(isHost ? 'ランプをタップで次の問題へ' : ''); }
+      });
+    });
+  }
+
+  function broadcastState(){
+    if (!room || !roomId) { return; }
+    if (roundOpen) {
+      room.emit('open', { room: roomId, round: round });
+    } else {
+      room.emit('win', { room: roomId, round: round, peer: lastWinner });
+    }
+  }
+
+  function usedRooms(){
+    var used = {};
+    if (!room) { return used; }
+    var peers = room.peers();
+    for (var i = 0; i < peers.length; i++) {
+      var pr = peers[i].presence;
+      if (pr && typeof pr.room === 'string') { used[pr.room] = true; }
+    }
+    return used;
+  }
+
+  /* ---------------- 画面遷移 ---------------- */
+
+  function enterRoom(id, host){
+    roomId = id;
+    isHost = host;
+    round = 1;
+    roundOpen = true;
+    lastWinner = null;
+    roomTag.textContent = id;
+    entry.hidden = true;
+    game.hidden = false;
+    openRound();
+
+    if (room) {
+      room.presence({ room: id, host: host ? true : null });
+      if (host) { room.emit('open', { room: id, round: 1 }); }
+      else { room.emit('hello', { room: id }); }
+    } else {
+      setHint('1人用モード（同じ画面を開いた人とはつながっていません）');
+    }
+    audio();
+    buzzer.focus();
+  }
+
+  createBtn.addEventListener('click', function(){
+    var used = usedRooms();
+    var id = null;
+    for (var i = 0; i < 40; i++) {
+      var c = String(Math.floor(1000 + Math.random() * 9000));
+      if (!used[c]) { id = c; break; }
+    }
+    if (!id) { id = String(Math.floor(1000 + Math.random() * 9000)); }
+    enterRoom(id, true);
+  });
+
+  codeInput.addEventListener('input', function(){
+    codeInput.value = codeInput.value.replace(/[^0-9]/g, '').slice(0, 4);
+    joinBtn.disabled = codeInput.value.length !== 4;
+    entryNote.textContent = '';
+    entryNote.className = 'note';
+  });
+
+  codeInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && codeInput.value.length === 4) { joinBtn.click(); }
+  });
+
+  joinBtn.addEventListener('click', function(){
+    if (codeInput.value.length !== 4) { return; }
+    enterRoom(codeInput.value, false);
+  });
+
+  /* ---------------- 早押し ---------------- */
+
+  function press(){
+    if (locked || pressed) { return; }
+    pinpon();
+    buzzer.classList.add('hit');
+    setTimeout(function(){ buzzer.classList.remove('hit'); }, 110);
+
+    if (!room || !roomId) {   // 1人用：自分のランプが光る
+      winBy(myPeer);
+      return;
+    }
+    pressed = true;
+    room.emit('buzz', { room: roomId, round: round });
+  }
+
+  buzzer.addEventListener('click', press);
+
+  // ホストだけがランプで次の問題へ
+  lamp.addEventListener('click', function(){
+    if (!isHost) { return; }
+    round++;
+    roundOpen = true;
+    lastWinner = null;
+    if (room) { room.emit('open', { room: roomId, round: round }); }
+    else { openRound(); }
+  });
+
+  roomTag.addEventListener('click', function(){
+    if (!roomId || !navigator.clipboard) { return; }
+    navigator.clipboard.writeText(roomId).then(function(){
+      var before = roomTag.textContent;
+      roomTag.textContent = 'コピーしました';
+      setTimeout(function(){ roomTag.textContent = before; }, 1200);
+    }, function(){});
+  });
+
+  document.addEventListener('keydown', function(e){
+    if (game.hidden) { return; }
+    if (e.code !== 'Space' && e.key !== 'Enter') { return; }
+    if (e.target && e.target.tagName === 'INPUT') { return; }
+    e.preventDefault();
+    if (e.repeat) { return; }
+    press();
+  });
+
+  connect();
+  setLamp(false);
+})();
+</script>
